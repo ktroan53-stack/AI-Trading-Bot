@@ -1,16 +1,52 @@
-import datetime
+import requests
+import pandas as pd
+
+from indicators.ema import calculate_ema
+from indicators.rsi import calculate_rsi
 
 
-def get_market_status():
-    """
-    Проверка работы модуля данных
-    """
+def load_candles(symbol="BTCUSDT", interval="1h", limit=500):
 
-    time_now = datetime.datetime.now()
+    url = (
+        f"https://api.binance.com/api/v3/klines"
+        f"?symbol={symbol}&interval={interval}&limit={limit}"
+    )
 
-    print("Модуль рыночных данных запущен")
-    print("Время проверки:", time_now)
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
 
+    candles = response.json()
 
-if __name__ == "__main__":
-    get_market_status()
+    df = pd.DataFrame(
+        candles,
+        columns=[
+            "open_time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "close_time",
+            "quote_volume",
+            "trades",
+            "taker_buy_base",
+            "taker_buy_quote",
+            "ignore",
+        ],
+    )
+
+    numeric_columns = [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+    ]
+
+    for column in numeric_columns:
+        df[column] = df[column].astype(float)
+
+    df["EMA20"] = calculate_ema(df)
+    df["RSI14"] = calculate_rsi(df)
+
+    return df
