@@ -4,25 +4,30 @@ import pandas as pd
 
 class AIPredictor:
     """
-    Прогнозирование AI Trading Bot
+    AI Predictor v0.2
 
-    Получает:
-    - подготовленные признаки
-
-    Возвращает:
-    - LONG
-    - SHORT
-    - HOLD
-    - вероятность решения
+    Отвечает за:
+    - загрузку ML модели
+    - прогноз направления
+    - расчёт уверенности
+    - передачу результата в AI Ensemble
     """
 
-    def __init__(self, model_path):
+
+    def __init__(self, model_path=None):
 
         self.model_path = model_path
+
         self.model = self.load_model()
 
 
+
     def load_model(self):
+
+        if self.model_path is None:
+
+            return None
+
 
         try:
 
@@ -31,15 +36,13 @@ class AIPredictor:
                 "rb"
             ) as file:
 
-                model = pickle.load(file)
-
-            return model
+                return pickle.load(file)
 
 
         except FileNotFoundError:
 
             print(
-                "AI модель не найдена"
+                "AI model not found"
             )
 
             return None
@@ -48,12 +51,20 @@ class AIPredictor:
 
     def predict(self, features):
 
+
         if self.model is None:
 
             return {
+
                 "signal": "HOLD",
-                "confidence": 0
+
+                "confidence": 0,
+
+                "source":
+                    "no_model"
+
             }
+
 
 
         if isinstance(features, pd.Series):
@@ -72,19 +83,22 @@ class AIPredictor:
         )[0]
 
 
-        confidence = max(
-            probability
-        ) * 100
+        confidence = round(
+            max(probability) * 100,
+            2
+        )
 
 
 
         if prediction == 1:
 
-            signal = "LONG"
+            signal = "BUY"
+
 
         elif prediction == -1:
 
-            signal = "SHORT"
+            signal = "SELL"
+
 
         else:
 
@@ -96,9 +110,15 @@ class AIPredictor:
 
             "signal": signal,
 
-            "confidence": round(
-                confidence,
-                2
-            )
+            "confidence": confidence,
+
+            "probability":
+                round(
+                    max(probability),
+                    3
+                ),
+
+            "source":
+                "ML_MODEL"
 
         }

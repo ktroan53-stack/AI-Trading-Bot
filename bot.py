@@ -3,6 +3,7 @@ from core.signal_engine import analyze_signal
 from core.ai_engine import AIEngine
 
 
+
 def main():
 
     print("=" * 55)
@@ -11,14 +12,10 @@ def main():
     print("=" * 55)
 
 
-    # Запускаем AI ядро
-
     ai = AIEngine(
         mode="BALANCED"
     )
 
-
-    # Загружаем данные
 
     data = load_candles()
 
@@ -37,11 +34,6 @@ def main():
     print(f"RSI14: {last['RSI14']:.2f}")
     print(f"ADX: {last['ADX']:.2f}")
 
-
-    print()
-
-
-    # Старый технический анализ
 
     result = analyze_signal(
 
@@ -68,6 +60,8 @@ def main():
     )
 
 
+    print()
+
     print("-" * 55)
 
     print("TECHNICAL ANALYSIS")
@@ -79,26 +73,34 @@ def main():
         f"Сигнал: {result['signal']}"
     )
 
-
     print(
         f"Уверенность: {result['confidence']}%"
     )
-
 
     print(
         f"Score: {result['score']}"
     )
 
 
-    print()
-
-
-    # AI анализ рынка
-
     market_regime = ai.analyze_market(
         data
     )
 
+
+    final = ai.make_decision(
+
+        signal=result["signal"],
+
+        confidence=result["confidence"],
+
+        market_regime=market_regime,
+
+        data=data
+
+    )
+
+
+    print()
 
     print("-" * 55)
 
@@ -112,16 +114,12 @@ def main():
     )
 
 
-    # Финальное решение AI
+    print()
 
-    final = ai.make_decision(
+    print("AI Prediction:")
 
-        signal=result["signal"],
-
-        confidence=result["confidence"],
-
-        market_regime=market_regime
-
+    print(
+        final["ai_prediction"]
     )
 
 

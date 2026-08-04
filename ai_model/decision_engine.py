@@ -1,128 +1,183 @@
 class DecisionEngine:
     """
-    Главный модуль принятия решений
+    Decision Fusion Engine v0.2
 
-    Объединяет:
-    - AI сигнал
-    - риск
-    - режим рынка
-    - торговые ограничения
+    Объединяет решения отделов:
 
-    Выдает:
-    - BUY
-    - SELL
-    - HOLD
+    - Technical Signal
+    - AI Ensemble
+    - Market Regime
+    - Risk Department
     """
 
-    def __init__(
+
+    def __init__(self):
+
+        self.weights = {
+
+            "technical": 0.4,
+
+            "ai": 0.6
+
+        }
+
+
+
+    def decide(
         self,
-        min_confidence=60
-    ):
-
-        self.min_confidence = min_confidence
-
-
-
-    def analyze(
-        self,
-        ai_signal,
+        signal,
         confidence,
+        risk,
         market_regime,
-        risk_allowed=True
+        ai_prediction=None
     ):
 
 
-        # Проверка риска
-
-        if not risk_allowed:
+        if not risk["allowed"]:
 
             return {
 
-                "decision": "HOLD",
+                "action": "HOLD",
 
                 "reason":
-                    "Risk manager blocked"
-
-            }
-
-
-
-        # Слабый сигнал
-
-        if confidence < self.min_confidence:
-
-            return {
-
-                "decision": "HOLD",
-
-                "reason":
-                    "Low AI confidence"
-
-            }
-
-
-
-        # Фильтр рынка
-
-
-        if market_regime == "HIGH_VOLATILITY":
-
-
-            if confidence < 80:
-
-                return {
-
-                    "decision": "HOLD",
-
-                    "reason":
-                        "High volatility protection"
-
-                }
-
-
-
-        # Принятие решения
-
-
-        if ai_signal == "LONG":
-
-            return {
-
-                "decision": "BUY",
+                    risk["reason"],
 
                 "confidence":
-                    confidence,
-
-                "reason":
-                    "AI consensus LONG"
+                    confidence
 
             }
 
 
 
-        elif ai_signal == "SHORT":
+        final_score = 0
+
+        explanations = []
+
+
+
+        # Technical analysis
+
+        if signal == "BUY":
+
+            final_score += self.weights["technical"]
+
+            explanations.append(
+                "Technical BUY"
+            )
+
+
+        elif signal == "SELL":
+
+            final_score -= self.weights["technical"]
+
+            explanations.append(
+                "Technical SELL"
+            )
+
+
+
+        # AI analysis
+
+        if ai_prediction:
+
+            ai_signal = ai_prediction.get(
+                "signal"
+            )
+
+            ai_confidence = ai_prediction.get(
+                "confidence",
+                0
+            )
+
+
+            ai_strength = ai_confidence / 100
+
+
+
+            if ai_signal == "BUY":
+
+                final_score += (
+                    self.weights["ai"]
+                    *
+                    ai_strength
+                )
+
+                explanations.append(
+                    "AI BUY"
+                )
+
+
+            elif ai_signal == "SELL":
+
+                final_score -= (
+                    self.weights["ai"]
+                    *
+                    ai_strength
+                )
+
+                explanations.append(
+                    "AI SELL"
+                )
+
+
+
+        # Market filter
+
+        if market_regime["regime"] == "SIDEWAYS":
+
+            final_score *= 0.5
+
+            explanations.append(
+                "Sideways market filter"
+            )
+
+
+
+        # Final decision
+
+        if final_score >= 0.5:
 
             return {
 
-                "decision": "SELL",
+                "action": "BUY",
 
-                "confidence":
-                    confidence,
+                "reason": explanations,
 
-                "reason":
-                    "AI consensus SHORT"
+                "score": round(
+                    final_score,
+                    2
+                )
 
             }
 
 
 
-        else:
+        if final_score <= -0.5:
 
             return {
 
-                "decision": "HOLD",
+                "action": "SELL",
 
-                "reason":
-                    "No clear signal"
+                "reason": explanations,
+
+                "score": round(
+                    final_score,
+                    2
+                )
 
             }
+
+
+
+        return {
+
+            "action": "HOLD",
+
+            "reason": explanations,
+
+            "score": round(
+                final_score,
+                2
+            )
+
+        }

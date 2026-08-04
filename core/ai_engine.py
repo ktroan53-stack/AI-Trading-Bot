@@ -1,3 +1,4 @@
+from ai_model.features import FeatureBuilder
 from ai_model.ensemble import AIEnsemble
 from ai_model.decision_engine import DecisionEngine
 from ai_model.risk_ai import AIRiskManager
@@ -6,44 +7,63 @@ from ai_model.market_regime import MarketRegimeDetector
 
 class AIEngine:
     """
-    Главный AI управляющий модуль
+    Центральное AI ядро торговой системы
 
-    Объединяет:
-    - AI модели
-    - анализ рынка
-    - риск менеджмент
-    - принятие решения
+    Объединяет отделы:
+
+    - Feature Engineering
+    - AI Ensemble
+    - Market Regime Analysis
+    - Risk Management
+    - Decision Engine
     """
 
-    def __init__(
-        self,
-        mode="BALANCED"
-    ):
+
+    def __init__(self, mode="BALANCED"):
+
+        self.mode = mode
+
+        self.feature_builder = FeatureBuilder()
 
         self.ensemble = AIEnsemble()
 
         self.regime_detector = MarketRegimeDetector()
 
-        self.decision_engine = DecisionEngine()
-
         self.risk_manager = AIRiskManager(
             mode=mode
         )
 
+        self.decision_engine = DecisionEngine()
 
-    def analyze_market(
-        self,
-        df
-    ):
 
-        # 1. Определяем состояние рынка
 
-        regime = self.regime_detector.detect(
-            df
+    def analyze_market(self, data):
+
+        return self.regime_detector.detect(
+            data
         )
 
 
-        return regime
+
+    def prepare_features(self, data):
+
+        return self.feature_builder.create_features(
+            data
+        )
+
+
+
+    def predict(self, data):
+
+        features = self.prepare_features(
+            data
+        )
+
+        prediction = self.ensemble.predict(
+            features
+        )
+
+        return prediction
 
 
 
@@ -52,44 +72,74 @@ class AIEngine:
         signal,
         confidence,
         market_regime,
-        drawdown=0
+        data=None
     ):
 
 
-        # 2. Проверяем риск
+        ai_prediction = None
+
+
+        if data is not None:
+
+            ai_prediction = self.predict(
+                data
+            )
+
+
+        # Если AI увереннее технического сигнала,
+        # учитываем мнение AI
+
+        final_signal = signal
+
+        final_confidence = confidence
+
+
+        if ai_prediction is not None:
+
+            if ai_prediction["confidence"] >= confidence:
+
+                final_signal = ai_prediction["signal"]
+
+                final_confidence = ai_prediction["confidence"]
+
+
 
         risk = self.risk_manager.analyze(
 
-            confidence,
+            confidence=final_confidence,
 
-            market_regime,
-
-            drawdown
+            market_regime=market_regime["regime"]
 
         )
 
 
-        # 3. Финальное решение
+        decision = self.decision_engine.decide(
 
-        decision = self.decision_engine.analyze(
+            signal=final_signal,
 
-            ai_signal=signal,
+            confidence=final_confidence,
 
-            confidence=confidence,
+            risk=risk,
 
             market_regime=market_regime,
 
-            risk_allowed=risk["allowed"]
+            ai_prediction=ai_prediction
 
         )
 
 
         return {
 
-            "decision":
-                decision,
+            "decision": decision,
 
-            "risk":
-                risk
+            "risk": risk,
+
+            "ai_prediction": ai_prediction,
+
+            "market_regime": market_regime,
+
+            "final_signal": final_signal,
+
+            "confidence": final_confidence
 
         }

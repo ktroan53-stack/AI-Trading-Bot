@@ -1,146 +1,200 @@
+from ai_model.predictor import AIPredictor
+
+
+
 class AIEnsemble:
     """
-    Объединение нескольких AI моделей
+    AI Ensemble Engine v0.2
 
-    Источники:
-    - XGBoost
-    - LightGBM
-    - технический анализ
-    - другие модели в будущем
-
-    Возвращает:
-    - общий сигнал
-    - уверенность
+    Объединяет:
+    - ML модели
+    - технические признаки
+    - прогнозы AI
     """
 
-    def __init__(self):
 
-        self.predictions = []
+    def __init__(self, model_path=None):
 
+        self.models = []
 
-
-    def add_prediction(
-        self,
-        model_name,
-        signal,
-        confidence
-    ):
-
-        self.predictions.append({
-
-            "model":
-                model_name,
-
-            "signal":
-                signal,
-
-            "confidence":
-                confidence
-
-        })
+        self.predictor = AIPredictor(
+            model_path
+        )
 
 
 
-    def calculate_consensus(self):
+    def add_model(self, model):
 
-        if len(self.predictions) == 0:
+        self.models.append(
+            model
+        )
+
+
+
+    def predict(self, features):
+
+
+        if features is None or len(features) == 0:
 
             return {
 
                 "signal": "HOLD",
 
-                "confidence": 0
+                "confidence": 0,
+
+                "probability": 0
 
             }
 
 
-        long_score = 0
-        short_score = 0
-        hold_score = 0
+
+        predictions = []
 
 
 
-        for prediction in self.predictions:
+        # =========================
+        # ML MODEL
+        # =========================
 
-            confidence = (
-                prediction["confidence"]
-                /
-                100
-            )
-
-
-            if prediction["signal"] == "LONG":
-
-                long_score += confidence
-
-
-            elif prediction["signal"] == "SHORT":
-
-                short_score += confidence
-
-
-            else:
-
-                hold_score += confidence
-
-
-
-        scores = {
-
-            "LONG": long_score,
-
-            "SHORT": short_score,
-
-            "HOLD": hold_score
-
-        }
-
-
-
-        final_signal = max(
-            scores,
-            key=scores.get
+        ml_prediction = self.predictor.predict(
+            features.iloc[-1]
         )
 
 
-        total = sum(
-            scores.values()
+        predictions.append(
+            ml_prediction
         )
 
 
-        if total == 0:
 
-            confidence = 0
+        # =========================
+        # ADDITIONAL MODELS
+        # =========================
 
-        else:
+        for model in self.models:
 
-            confidence = (
-                scores[final_signal]
-                /
-                total
-                *
-                100
+
+            prediction = model.predict(
+                features
             )
+
+
+            predictions.append(
+                prediction
+            )
+
+
+
+        buy_score = 0
+
+        sell_score = 0
+
+
+
+        total_confidence = 0
+
+
+
+        for prediction in predictions:
+
+
+            confidence = prediction.get(
+                "confidence",
+                0
+            )
+
+
+            signal = prediction.get(
+                "signal"
+            )
+
+
+            if signal == "BUY":
+
+                buy_score += confidence
+
+
+            elif signal == "SELL":
+
+                sell_score += confidence
+
+
+
+            total_confidence += confidence
+
+
+
+        # =========================
+        # FINAL AI DECISION
+        # =========================
+
+
+        if buy_score > sell_score:
+
+            return {
+
+                "signal": "BUY",
+
+                "confidence":
+                    round(
+                        buy_score /
+                        max(
+                            len(predictions),
+                            1
+                        ),
+                        2
+                    ),
+
+                "probability":
+                    round(
+                        buy_score /
+                        max(
+                            total_confidence,
+                            1
+                        ),
+                        3
+                    )
+
+            }
+
+
+
+        if sell_score > buy_score:
+
+            return {
+
+                "signal": "SELL",
+
+                "confidence":
+                    round(
+                        sell_score /
+                        max(
+                            len(predictions),
+                            1
+                        ),
+                        2
+                    ),
+
+                "probability":
+                    round(
+                        sell_score /
+                        max(
+                            total_confidence,
+                            1
+                        ),
+                        3
+                    )
+
+            }
+
 
 
         return {
 
-            "signal":
-                final_signal,
+            "signal": "HOLD",
 
-            "confidence":
-                round(
-                    confidence,
-                    2
-                ),
+            "confidence": 50,
 
-            "details":
-                scores
+            "probability": 0.5
 
         }
-
-
-
-    def clear(self):
-
-        self.predictions = []

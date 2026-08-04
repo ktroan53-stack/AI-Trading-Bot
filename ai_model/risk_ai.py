@@ -1,23 +1,15 @@
 class AIRiskManager:
     """
-    AI отдел управления рисками
+    AI Risk Department v0.2
 
-    Анализирует:
-    - уверенность AI
-    - волатильность
+    Управление риском:
+    - проверка уверенности
     - режим рынка
-    - стиль торговли
-
-    Выдает:
-    - разрешение сделки
-    - размер риска
-    - коэффициент агрессии
+    - защита капитала
     """
 
-    def __init__(
-        self,
-        mode="BALANCED"
-    ):
+
+    def __init__(self, mode="BALANCED"):
 
         self.mode = mode
 
@@ -25,26 +17,18 @@ class AIRiskManager:
         self.settings = {
 
             "CONSERVATIVE": {
-
                 "max_risk": 0.01,
                 "min_confidence": 75
-
             },
-
 
             "BALANCED": {
-
                 "max_risk": 0.02,
                 "min_confidence": 65
-
             },
 
-
             "AGGRESSIVE": {
-
                 "max_risk": 0.03,
                 "min_confidence": 55
-
             }
 
         }
@@ -65,10 +49,10 @@ class AIRiskManager:
         risk = settings["max_risk"]
 
 
+        # Критическая блокировка только
+        # при очень слабом сигнале
 
-        # Проверка уверенности
-
-        if confidence < settings["min_confidence"]:
+        if confidence < 40:
 
             return {
 
@@ -77,13 +61,21 @@ class AIRiskManager:
                 "risk": 0,
 
                 "reason":
-                    "AI confidence too low"
+                    "Confidence critically low"
 
             }
 
 
 
-        # Защита при высокой волатильности
+        # Снижение риска во флэте
+
+        if market_regime == "SIDEWAYS":
+
+            risk *= 0.5
+
+
+
+        # Высокая волатильность
 
         if market_regime == "HIGH_VOLATILITY":
 
@@ -91,13 +83,7 @@ class AIRiskManager:
 
 
 
-        # Защита при просадке
-
-        if drawdown > 10:
-
-            risk *= 0.5
-
-
+        # Защита просадки
 
         if drawdown > 20:
 
@@ -119,10 +105,7 @@ class AIRiskManager:
             "allowed": True,
 
             "risk":
-                round(
-                    risk,
-                    4
-                ),
+                round(risk,4),
 
             "mode":
                 self.mode,
@@ -134,10 +117,7 @@ class AIRiskManager:
 
 
 
-    def change_mode(
-        self,
-        mode
-    ):
+    def change_mode(self, mode):
 
         if mode in self.settings:
 
