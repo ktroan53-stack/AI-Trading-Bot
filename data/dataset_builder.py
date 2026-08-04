@@ -9,121 +9,172 @@ sys.path.append(
     )
 )
 
+
 import pandas as pd
 
 from indicators.ema import calculate_ema
 from indicators.rsi import calculate_rsi
 from indicators.macd import calculate_macd
-from indicators.adx import calculate_adx
-from indicators.atr import calculate_atr
 from indicators.bollinger import calculate_bollinger_bands
+from indicators.atr import calculate_atr
+from indicators.adx import calculate_adx
+
+from ai_model.features import FeatureBuilder
 
 
 
-class DatasetBuilder:
+def build_dataset():
 
 
-    def build(
-        self,
-        filename="data/history.csv"
-    ):
+    print("==============================")
+    print("BUILDING DATASET v3")
+    print("==============================")
 
 
-        df = pd.read_csv(filename)
+    df = pd.read_csv(
+        "data/history.csv"
+    )
 
 
-        df["EMA20"] = calculate_ema(
-            df,
-            20
-        )
-
-        df["EMA50"] = calculate_ema(
-            df,
-            50
-        )
-
-
-        df["RSI14"] = calculate_rsi(
-            df,
-            14
-        )
-
-
-        macd_line, signal_line, histogram = calculate_macd(
-            df
-        )
-
-        df["MACD"] = macd_line
-
-        df["MACD_signal"] = signal_line
-
-        df["MACD_hist"] = histogram
+    print(
+        "Loaded:",
+        len(df)
+    )
 
 
 
-        df["ADX"] = calculate_adx(
-            df,
-            14
-        )
+    # EMA
+
+    df["EMA20"] = calculate_ema(
+        df,
+        20
+    )
 
 
-        df["ATR"] = calculate_atr(
-            df,
-            14
-        )
+    df["EMA50"] = calculate_ema(
+        df,
+        50
+    )
 
 
-
-        upper, middle, lower = calculate_bollinger_bands(
-            df
-        )
-
-
-        df["BB_upper"] = upper
-
-        df["BB_middle"] = middle
-
-        df["BB_lower"] = lower
+    df["EMA200"] = calculate_ema(
+        df,
+        200
+    )
 
 
 
-        future_price = df["close"].shift(-1)
+    # RSI
 
-
-        # TARGET
-        # 1 = рост
-        # 0 = падение
-
-        df["target"] = 0
-
-
-        df.loc[
-            future_price > df["close"],
-            "target"
-        ] = 1
+    df["RSI14"] = calculate_rsi(
+        df,
+        14
+    )
 
 
 
-        df = df.dropna()
+    # MACD
+
+    macd, signal, hist = calculate_macd(
+        df
+    )
+
+
+    df["MACD"] = macd
+
+    df["MACD_SIGNAL"] = signal
+
+    df["MACD_HIST"] = hist
 
 
 
-        df.to_csv(
-            "data/training_dataset.csv",
-            index=False
-        )
+    # Bollinger
+
+    upper, middle, lower = calculate_bollinger_bands(
+        df
+    )
 
 
-        print("==============================")
-        print("TRAINING DATASET CREATED")
-        print("Rows:", len(df))
-        print(list(df.columns))
-        print("==============================")
+    df["BB_UPPER"] = upper
+
+    df["BB_MIDDLE"] = middle
+
+    df["BB_LOWER"] = lower
+
+
+
+    # ATR
+
+    df["ATR"] = calculate_atr(
+        df,
+        14
+    )
+
+
+
+    # ADX
+
+    df["ADX"] = calculate_adx(
+        df,
+        14
+    )
+
+
+
+    # TARGET
+
+    df["target"] = 0
+
+
+    future = df["close"].shift(-10)
+
+
+    df.loc[
+        future > df["close"] * 1.01,
+        "target"
+    ] = 1
+
+
+    df.loc[
+        future < df["close"] * 0.99,
+        "target"
+    ] = -1
+
+
+
+    # AI FEATURES
+
+    builder = FeatureBuilder()
+
+
+    df = builder.create_features(
+        df
+    )
+
+
+
+    df.to_csv(
+        "data/training_dataset_v3.csv",
+        index=False
+    )
+
+
+
+    print("==============================")
+    print("DATASET CREATED")
+    print(
+        "Rows:",
+        len(df)
+    )
+
+    print(
+        df.columns.tolist()
+    )
+
+    print("==============================")
 
 
 
 if __name__ == "__main__":
 
-    builder = DatasetBuilder()
-
-    builder.build()
+    build_dataset()

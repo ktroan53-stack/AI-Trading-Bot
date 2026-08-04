@@ -1,7 +1,6 @@
 import sys
 import os
 
-# добавляем корень проекта в путь
 sys.path.append(
     os.path.dirname(
         os.path.dirname(
@@ -9,7 +8,6 @@ sys.path.append(
         )
     )
 )
-
 
 import pandas as pd
 
@@ -20,31 +18,39 @@ from ai_model.trainer import AITrainer
 def main():
 
     print("==============================")
-    print("AI MODEL TRAINING START")
+    print("AI MODEL TRAINING v4 START")
     print("==============================")
 
 
+    # Загружаем большой датасет 2018-2026
     df = pd.read_csv(
-        "data/training_dataset.csv"
+        "data/training_dataset_v3.csv"
+    )
+
+
+    print(
+        "DATASET ROWS:",
+        len(df)
     )
 
 
     trainer = AITrainer()
 
 
-
     X_train, X_test, y_train, y_test = trainer.prepare_data(
-        df,
-        "target"
+        df
     )
 
+
+    print(
+        "TRAINING XGBOOST v4..."
+    )
 
 
     model = trainer.train_xgboost(
         X_train,
         y_train
     )
-
 
 
     accuracy = trainer.evaluate(
@@ -61,10 +67,9 @@ def main():
     )
 
 
-
     path = trainer.save(
         model,
-        "xgboost_v1"
+        "xgboost_v4"
     )
 
 

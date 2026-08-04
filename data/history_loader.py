@@ -1,157 +1,161 @@
-import pandas as pd
 import requests
+import pandas as pd
 import time
+import os
 
 
-class HistoryLoader:
-    """
-    Загрузчик исторических данных
+SYMBOL = "BTCUSDT"
+INTERVAL = "1h"
 
-    Получает свечи Binance API
-
-    Поддерживает:
-    - BTCUSDT
-    - ETHUSDT
-    - таймфреймы
-    """
+START_TIME = int(
+    pd.Timestamp("2018-01-01").timestamp() * 1000
+)
 
 
-
-    def __init__(
-        self,
-        symbol="BTCUSDT",
-        interval="1h"
-    ):
-
-        self.symbol = symbol
-
-        self.interval = interval
-
-        self.url = (
-            "https://api.binance.com/api/v3/klines"
-        )
+END_TIME = int(
+    pd.Timestamp.now().timestamp() * 1000
+)
 
 
 
-    def load(
-        self,
-        limit=1000
-    ):
+def download_binance_history():
+
+
+    print("==============================")
+    print("BINANCE HISTORY DOWNLOADER")
+    print("==============================")
+
+
+    url = (
+        "https://api.binance.com/api/v3/klines"
+    )
+
+
+    all_data = []
+
+    current = START_TIME
+
+
+
+    while current < END_TIME:
 
 
         params = {
 
-            "symbol":
-                self.symbol,
+            "symbol": SYMBOL,
 
-            "interval":
-                self.interval,
+            "interval": INTERVAL,
 
-            "limit":
-                limit
+            "startTime": current,
+
+            "limit": 1000
 
         }
 
 
         response = requests.get(
-
-            self.url,
-
+            url,
             params=params
-
         )
 
 
-        data = response.json()
+        candles = response.json()
 
 
 
-        candles = []
+        if not candles:
 
-
-        for row in data:
-
-
-            candles.append({
-
-                "time":
-                    row[0],
-
-                "open":
-                    float(row[1]),
-
-                "high":
-                    float(row[2]),
-
-                "low":
-                    float(row[3]),
-
-                "close":
-                    float(row[4]),
-
-                "volume":
-                    float(row[5])
-
-            })
-
-
-        df = pd.DataFrame(
-            candles
-        )
-
-
-        return df
+            break
 
 
 
-    def save(
-        self,
-        df,
-        filename="data/history.csv"
-    ):
+        for c in candles:
+
+            all_data.append(
+
+                [
+
+                    c[0],
+
+                    c[1],
+
+                    c[2],
+
+                    c[3],
+
+                    c[4],
+
+                    c[5]
+
+                ]
+
+            )
 
 
-        df.to_csv(
 
-            filename,
+        current = candles[-1][0] + 1
 
-            index=False
-
-        )
 
 
         print(
-            "History saved:"
+            "Loaded candles:",
+            len(all_data)
         )
 
-        print(
-            filename
-        )
+
+        time.sleep(0.2)
+
+
+
+    df = pd.DataFrame(
+
+        all_data,
+
+        columns=[
+
+            "time",
+
+            "open",
+
+            "high",
+
+            "low",
+
+            "close",
+
+            "volume"
+
+        ]
+
+    )
+
+
+
+    df.to_csv(
+
+        "data/history.csv",
+
+        index=False
+
+    )
+
+
+
+    print("==============================")
+
+    print(
+        "HISTORY SAVED"
+    )
+
+    print(
+        "TOTAL:",
+        len(df)
+    )
+
+    print("==============================")
 
 
 
 if __name__ == "__main__":
 
-
-    loader = HistoryLoader(
-
-        symbol="BTCUSDT",
-
-        interval="1h"
-
-    )
-
-
-    df = loader.load(
-        limit=1000
-    )
-
-
-    loader.save(
-        df
-    )
-
-
-    print(
-        df.head()
-    )
+    download_binance_history()

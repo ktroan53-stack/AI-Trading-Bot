@@ -2,24 +2,13 @@ import os
 import pickle
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
 from xgboost import XGBClassifier
 
 
 
 class AITrainer:
-    """
-    AI Trainer v0.2
-
-    Обучение моделей:
-
-    - XGBoost
-    - проверка качества
-    - сохранение модели
-    - подготовка для AI Predictor
-    """
-
 
 
     def __init__(
@@ -42,17 +31,26 @@ class AITrainer:
 
     def prepare_data(
         self,
-        df,
-        target
+        df
     ):
 
 
         X = df.drop(
-            columns=[target]
+            columns=["target"]
         )
 
 
-        y = df[target]
+        y = df["target"]
+
+
+        # классы для XGBoost
+        y = y.replace(
+            {
+                -1:0,
+                0:1,
+                1:2
+            }
+        )
 
 
         return train_test_split(
@@ -78,15 +76,21 @@ class AITrainer:
 
         model = XGBClassifier(
 
-            n_estimators=300,
+            n_estimators=500,
 
             learning_rate=0.03,
 
-            max_depth=5,
+            max_depth=6,
 
             subsample=0.8,
 
             colsample_bytree=0.8,
+
+            objective="multi:softprob",
+
+            num_class=3,
+
+            eval_metric="mlogloss",
 
             random_state=42
 
@@ -128,12 +132,17 @@ class AITrainer:
         )
 
 
+        print(
+            classification_report(
+                y_test,
+                prediction
+            )
+        )
+
+
         return round(
-
             accuracy * 100,
-
             2
-
         )
 
 
@@ -141,7 +150,7 @@ class AITrainer:
     def save(
         self,
         model,
-        name="xgboost_v1"
+        name="xgboost_v4"
     ):
 
 
@@ -154,20 +163,13 @@ class AITrainer:
 
 
         with open(
-
             path,
-
             "wb"
-
         ) as file:
 
-
             pickle.dump(
-
                 model,
-
                 file
-
             )
 
 
