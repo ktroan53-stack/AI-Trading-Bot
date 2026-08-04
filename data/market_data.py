@@ -1,5 +1,5 @@
+import requests
 import pandas as pd
-import numpy as np
 
 from indicators.ema import calculate_ema
 from indicators.rsi import calculate_rsi
@@ -9,65 +9,75 @@ from indicators.atr import calculate_atr
 from indicators.adx import calculate_adx
 
 
-def load_candles():
 
-    np.random.seed(42)
-
-    prices = []
-
-    price = 64000
+BINANCE_URL = "https://api.binance.com/api/v3/klines"
 
 
-    # Генерируем 100 тестовых свечей
 
-    for i in range(100):
+def load_candles(
+    symbol="BTCUSDT",
+    interval="1h",
+    limit=100
+):
 
-        change = np.random.randint(
-            -500,
-            500
+    params = {
+
+        "symbol": symbol,
+
+        "interval": interval,
+
+        "limit": limit
+
+    }
+
+
+    response = requests.get(
+        BINANCE_URL,
+        params=params
+    )
+
+
+    data = response.json()
+
+
+
+    candles = []
+
+
+    for candle in data:
+
+        candles.append(
+
+            {
+
+                "time": candle[0],
+
+                "open": float(candle[1]),
+
+                "high": float(candle[2]),
+
+                "low": float(candle[3]),
+
+                "close": float(candle[4]),
+
+                "volume": float(candle[5])
+
+            }
+
         )
-
-        price += change
-
-        prices.append(price)
 
 
 
     df = pd.DataFrame(
-        {
-            "close": prices
-        }
+        candles
     )
 
-
-    df["open"] = df["close"].shift(1)
-
-
-    df["high"] = (
-        df["close"]
-        +
-        np.random.randint(
-            100,
-            500,
-            100
-        )
-    )
-
-
-    df["low"] = (
-        df["close"]
-        -
-        np.random.randint(
-            100,
-            500,
-            100
-        )
-    )
 
 
     # =====================
-    # EMA
+    # INDICATORS
     # =====================
+
 
     df["EMA20"] = calculate_ema(
         df,
@@ -81,21 +91,12 @@ def load_candles():
     )
 
 
-
-    # =====================
-    # RSI
-    # =====================
-
     df["RSI14"] = calculate_rsi(
         df,
         14
     )
 
 
-
-    # =====================
-    # MACD
-    # =====================
 
     macd_line, signal_line, histogram = calculate_macd(
         df
@@ -110,10 +111,6 @@ def load_candles():
 
 
 
-    # =====================
-    # Bollinger Bands
-    # =====================
-
     upper, middle, lower = calculate_bollinger_bands(
         df
     )
@@ -127,20 +124,11 @@ def load_candles():
 
 
 
-    # =====================
-    # ATR
-    # =====================
-
     df["ATR"] = calculate_atr(
         df,
         14
     )
 
-
-
-    # =====================
-    # ADX
-    # =====================
 
     df["ADX"] = calculate_adx(
         df,

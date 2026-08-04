@@ -1,20 +1,15 @@
+import os
 import pickle
 import pandas as pd
 
 
 class AIPredictor:
-    """
-    AI Predictor v0.2
-
-    Отвечает за:
-    - загрузку ML модели
-    - прогноз направления
-    - расчёт уверенности
-    - передачу результата в AI Ensemble
-    """
 
 
-    def __init__(self, model_path=None):
+    def __init__(
+        self,
+        model_path="ai_model/models/xgboost_v1.pkl"
+    ):
 
         self.model_path = model_path
 
@@ -24,22 +19,9 @@ class AIPredictor:
 
     def load_model(self):
 
-        if self.model_path is None:
-
-            return None
-
-
-        try:
-
-            with open(
-                self.model_path,
-                "rb"
-            ) as file:
-
-                return pickle.load(file)
-
-
-        except FileNotFoundError:
+        if not os.path.exists(
+            self.model_path
+        ):
 
             print(
                 "AI model not found"
@@ -48,8 +30,19 @@ class AIPredictor:
             return None
 
 
+        with open(
+            self.model_path,
+            "rb"
+        ) as file:
 
-    def predict(self, features):
+            return pickle.load(file)
+
+
+
+    def predict(
+        self,
+        features
+    ):
 
 
         if self.model is None:
@@ -60,16 +53,87 @@ class AIPredictor:
 
                 "confidence": 0,
 
-                "source":
-                    "no_model"
+                "probability": 0
 
             }
 
 
 
-        if isinstance(features, pd.Series):
+        if isinstance(
+            features,
+            pd.Series
+        ):
 
             features = features.to_frame().T
+
+
+
+        # приводим LIVE названия к формату обучения
+
+        rename_map = {
+
+            "MACD_SIGNAL": "MACD_signal",
+
+            "MACD_HIST": "MACD_hist",
+
+            "BB_UPPER": "BB_upper",
+
+            "BB_MIDDLE": "BB_middle",
+
+            "BB_LOWER": "BB_lower"
+
+        }
+
+
+        features = features.rename(
+            columns=rename_map
+        )
+
+
+
+        required_features = [
+
+            "time",
+
+            "open",
+
+            "high",
+
+            "low",
+
+            "close",
+
+            "volume",
+
+            "EMA20",
+
+            "EMA50",
+
+            "RSI14",
+
+            "MACD",
+
+            "MACD_signal",
+
+            "MACD_hist",
+
+            "ADX",
+
+            "ATR",
+
+            "BB_upper",
+
+            "BB_middle",
+
+            "BB_lower"
+
+        ]
+
+
+
+        features = features[
+            required_features
+        ]
 
 
 
@@ -78,15 +142,16 @@ class AIPredictor:
         )[0]
 
 
+
         probability = self.model.predict_proba(
             features
         )[0]
 
 
-        confidence = round(
-            max(probability) * 100,
-            2
-        )
+
+        confidence = max(
+            probability
+        ) * 100
 
 
 
@@ -94,15 +159,9 @@ class AIPredictor:
 
             signal = "BUY"
 
-
-        elif prediction == -1:
-
-            signal = "SELL"
-
-
         else:
 
-            signal = "HOLD"
+            signal = "SELL"
 
 
 
@@ -110,15 +169,14 @@ class AIPredictor:
 
             "signal": signal,
 
-            "confidence": confidence,
+            "confidence": round(
+                confidence,
+                2
+            ),
 
-            "probability":
-                round(
-                    max(probability),
-                    3
-                ),
-
-            "source":
-                "ML_MODEL"
+            "probability": round(
+                max(probability),
+                3
+            )
 
         }

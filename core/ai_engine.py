@@ -1,43 +1,47 @@
 from ai_model.features import FeatureBuilder
-from ai_model.ensemble import AIEnsemble
+from ai_model.predictor import AIPredictor
 from ai_model.decision_engine import DecisionEngine
 from ai_model.risk_ai import AIRiskManager
 from ai_model.market_regime import MarketRegimeDetector
 
 
+
 class AIEngine:
-    """
-    Центральное AI ядро торговой системы
-
-    Объединяет отделы:
-
-    - Feature Engineering
-    - AI Ensemble
-    - Market Regime Analysis
-    - Risk Management
-    - Decision Engine
-    """
 
 
-    def __init__(self, mode="BALANCED"):
+    def __init__(
+        self,
+        mode="BALANCED"
+    ):
+
 
         self.mode = mode
 
+
         self.feature_builder = FeatureBuilder()
 
-        self.ensemble = AIEnsemble()
+
+        self.predictor = AIPredictor(
+            "ai_model/models/xgboost_v1.pkl"
+        )
+
 
         self.regime_detector = MarketRegimeDetector()
+
 
         self.risk_manager = AIRiskManager(
             mode=mode
         )
 
+
         self.decision_engine = DecisionEngine()
 
 
 
-    def analyze_market(self, data):
+    def analyze_market(
+        self,
+        data
+    ):
 
         return self.regime_detector.detect(
             data
@@ -45,7 +49,10 @@ class AIEngine:
 
 
 
-    def prepare_features(self, data):
+    def prepare_features(
+        self,
+        data
+    ):
 
         return self.feature_builder.create_features(
             data
@@ -53,15 +60,24 @@ class AIEngine:
 
 
 
-    def predict(self, data):
+    def predict(
+        self,
+        data
+    ):
+
 
         features = self.prepare_features(
             data
         )
 
-        prediction = self.ensemble.predict(
-            features
+
+        latest = features.iloc[-1]
+
+
+        prediction = self.predictor.predict(
+            latest
         )
+
 
         return prediction
 
@@ -86,21 +102,22 @@ class AIEngine:
             )
 
 
-        # Если AI увереннее технического сигнала,
-        # учитываем мнение AI
 
         final_signal = signal
 
         final_confidence = confidence
 
 
-        if ai_prediction is not None:
+
+        if ai_prediction:
+
 
             if ai_prediction["confidence"] >= confidence:
 
                 final_signal = ai_prediction["signal"]
 
                 final_confidence = ai_prediction["confidence"]
+
 
 
 
@@ -111,6 +128,7 @@ class AIEngine:
             market_regime=market_regime["regime"]
 
         )
+
 
 
         decision = self.decision_engine.decide(
@@ -128,7 +146,9 @@ class AIEngine:
         )
 
 
+
         return {
+
 
             "decision": decision,
 
