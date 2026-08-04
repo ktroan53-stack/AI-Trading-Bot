@@ -1,13 +1,24 @@
 from data.market_data import load_candles
 from core.signal_engine import analyze_signal
+from core.ai_engine import AIEngine
 
 
 def main():
 
-    print("=" * 45)
-    print("        AI TRADING BOT v0.2")
-    print("=" * 45)
+    print("=" * 55)
+    print("        AI TRADING BOT v0.3")
+    print("        AI ENGINE INTEGRATION")
+    print("=" * 55)
 
+
+    # Запускаем AI ядро
+
+    ai = AIEngine(
+        mode="BALANCED"
+    )
+
+
+    # Загружаем данные
 
     data = load_candles()
 
@@ -15,8 +26,9 @@ def main():
 
 
     print()
+
     print("BTCUSDT")
-    print("-" * 45)
+    print("-" * 55)
 
 
     print(f"Цена: {last['close']:.2f}")
@@ -26,44 +38,10 @@ def main():
     print(f"ADX: {last['ADX']:.2f}")
 
 
-
     print()
 
 
-    if last["EMA20"] > last["EMA50"]:
-
-        print("Тренд: ВОСХОДЯЩИЙ")
-
-    else:
-
-        print("Тренд: НИСХОДЯЩИЙ")
-
-
-
-    print()
-
-
-    if last["RSI14"] > 70:
-
-        print("RSI: Перекупленность")
-
-    elif last["RSI14"] < 30:
-
-        print("RSI: Перепроданность")
-
-    else:
-
-        print("RSI: Нейтральная зона")
-
-
-
-    print()
-
-    print("-" * 45)
-    print("AI ANALYSIS")
-    print("-" * 45)
-
-
+    # Старый технический анализ
 
     result = analyze_signal(
 
@@ -90,8 +68,12 @@ def main():
     )
 
 
+    print("-" * 55)
 
-    print()
+    print("TECHNICAL ANALYSIS")
+
+    print("-" * 55)
+
 
     print(
         f"Сигнал: {result['signal']}"
@@ -110,19 +92,57 @@ def main():
 
     print()
 
-    print("Причины:")
+
+    # AI анализ рынка
+
+    market_regime = ai.analyze_market(
+        data
+    )
 
 
-    for reason in result["reasons"]:
+    print("-" * 55)
 
-        print(
-            "-",
-            reason
-        )
+    print("AI ENGINE")
 
+    print("-" * 55)
 
 
-    print("=" * 45)
+    print(
+        f"Режим рынка: {market_regime}"
+    )
+
+
+    # Финальное решение AI
+
+    final = ai.make_decision(
+
+        signal=result["signal"],
+
+        confidence=result["confidence"],
+
+        market_regime=market_regime
+
+    )
+
+
+    print()
+
+    print("FINAL DECISION")
+
+    print("-" * 55)
+
+
+    print(
+        f"Решение: {final['decision']}"
+    )
+
+
+    print(
+        f"Риск: {final['risk']}"
+    )
+
+
+    print("=" * 55)
 
 
 
